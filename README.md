@@ -22,7 +22,7 @@ Raspberry Pi Pico, and supports all of the above mentioned operational modes on
 all these Raspberry Pi architectures.  To seamlessly span all different 
 Raspberry Pi architectures, this software uses the Python GPIO Abstraction layer 
 module GPIO_AL by the same author, which will therefore also need to be 
-installed and is available here: https://github.com/...
+installed and is available here: https://github.com/Ekkehard/RBPiGPIO_AL.
 
 Please note that a new sensor requires a 48 hour burn in.  Once burned in, a 
 sensor requires to run for 20 minutes before readings are stable and considered 
