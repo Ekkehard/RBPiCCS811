@@ -29,7 +29,7 @@ sensor requires to run for 20 minutes before readings are stable and considered
 valid.
 
 For a complete documentation of this Python module, please see the docs 
-directory.
+directory https://ekkehard.github.io/RBPiCCS811/
 
 Version History
 ---------------
