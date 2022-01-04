@@ -32,7 +32,7 @@
 #
 # @copyright
 # Copyright 2021 W. Ekkehard Blanz
-# See Copying.md and License.md files that come with this distribution.
+# See NOTICE.md and LICENSE.md files that come with this distribution.
 
 # File history:
 #
@@ -61,10 +61,10 @@ except ImportError:
 from GPIO_AL import *
 from CCS811 import *
 
-if ARCHITECTURE == 'RaspberryPi':
+try:
     import traceback
     exitChar = 'Ctrl-C'
-elif ARCHITECTURE == 'RaspberryPiPico':
+except:
     traceback = None
     # keyboard interrupt on Raspberry Pi Pico is broken and gets "stuck"
     # so new inputs are also interrupted - use 'q' instead where possible

@@ -30,7 +30,7 @@
 #
 # @copyright
 # Copyright 2021 W. Ekkehard Blanz
-# See COPYING.md and LICENSE.md files that come with this distribution.
+# See NOTICE.md and LICENSE.md files that come with this distribution.
 
 # File history:
 #
@@ -58,9 +58,9 @@ except ImportError:
 from GPIO_AL import *
 from CCS811 import *
 
-if ARCHITECTURE == 'RaspberryPi':
+try:
     import traceback
-elif ARCHITECTURE == 'RaspberryPiPico':
+except:
     traceback = None
 
 #  main program - Quick And Dirty Wakeup Test
