@@ -41,5 +41,5 @@ License Information
 -------------------
 This code is _**Free and Open Source Software**_! 
 
-Please see the LICENSEe.md and COPYING.md files for more detailed license 
+Please see the LICENSEe.md and CNOTICE.md files for more detailed license 
 information.  
