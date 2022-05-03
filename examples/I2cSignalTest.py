@@ -90,10 +90,10 @@ if __name__ == "__main__":
                             raise GPIOError( aqSensor.errorText )
                         co2List.append( aqSensor.CO2 )
                         vocList.append( aqSensor.tVOC )
-                    except GPIOError as e:
+                    except (GPIOError, ValueError) as e:
                         print( 'Error reading data: {0}'.format( e ) )
                 aqSensor.close()
-            except GPIOError as e:
+            except (GPIOError, ValueError) as e:
                 print( 'Error: could not initialize CCS811 sensor ({0})'
                        ''.format( e ) )
             i2cBus.close()

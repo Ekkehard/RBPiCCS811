@@ -59,7 +59,7 @@ try:
 except ImportError:
     pass
 
-from GPIO_AL import GPIOError, I2Cbus, IOpin
+from GPIO_AL import GPIOError, IOpin
 
 
 class CCS811( object ):
