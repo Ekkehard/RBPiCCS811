@@ -71,6 +71,9 @@ if __name__ == "__main__":
 
         _ = input( 'Arm Logic Analyzer - hit Enter when done' )
 
+        co2List = []
+        vocList = []
+
         try:
             # use the I2C bus with user-entered parameters
             i2cBus = I2Cbus( frequency=f,
@@ -85,8 +88,8 @@ if __name__ == "__main__":
                             pass
                         if aqSensor.errorCondition:
                             raise GPIOError( aqSensor.errorText )
-                        print( 'CO2: {0} ppm, total VOC: {1} ppb'
-                               ''.format( aqSensor.CO2, aqSensor.tVOC ) )
+                        co2List.append( aqSensor.CO2 )
+                        vocList.append( aqSensor.tVOC )
                     except GPIOError as e:
                         print( 'Error reading data: {0}'.format( e ) )
                 aqSensor.close()
@@ -97,6 +100,9 @@ if __name__ == "__main__":
         except GPIOError as e:
             print( 'Error: Could not initialize I2C bus ({0})'.format( e ) )
 
+        for i in range( len( co2List ) ):
+            print( 'CO2: {0} ppm, total VOC: {1} ppb'
+                   ''.format( co2List[i], vocList[i] ) )
         print( 'Exiting...' )
 
         return 0
