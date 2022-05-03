@@ -116,7 +116,8 @@ class CCS811( object ):
     
     # static public constants
     # -----------------------
-    # possible values for measurement interval (s. data sheet p. 11)
+    # possible values for measurement interval  are 1 s, 10 s, 60 s, and 250 ms
+    # (s. data sheet p. 11)
     MEAS_INT_IDLE = 0
     MEAS_INT_1 = 1
     MEAS_INT_10 = 2
