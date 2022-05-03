@@ -61,7 +61,7 @@ if __name__ == "__main__":
         """!
         @brief main program - I2C bus Signal Generator for Logic Analyzer.
         """
-        f = float( input( 'Enter I2C bus frequency in Hz: ' ) )
+        f = int( input( 'Enter I2C bus frequency in Hz: ' ) )
         m = int( input( 'Enter mode ({0} hardware mode, {1} software mode): '
                         ''.format( I2Cbus.HARDWARE_MODE,
                                    I2Cbus.SOFTWARE_MODE ) ) )
