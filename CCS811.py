@@ -68,7 +68,7 @@ class CCS811( object ):
     Digital Gas Sensor for Monitoring Indoor Air Quality, CCS811, and read the
     CO<sub>2</sub> and tVOC (total Volatile Organic Compounds) values from this
     chip.
-    
+
     The class makes the measured values available through the properties CO2 and
     tVOC which provide measured CO<sub>2</sub> levels in parts per million (
     ppm) and measured total Volatile Organic Compounds in parts per billion
@@ -81,7 +81,7 @@ class CCS811( object ):
     packages must be installed as subdirectories of a common parent directory
     on Raspberry Pis running an Operating System; both GPIO_AL.py and CCS811.py
     must be installed on the flash of a Raspberry Pi Pico.
-    
+
     There are two operation modes this class can run in: there is first the poll
     mode, where the calling program repeatedly checks for the availability of
     new data, which will then be read automatically as soon as it becomes
@@ -96,7 +96,7 @@ class CCS811( object ):
     measurements available.  Moreover, the class provides a sleep() method to
     send the sensor to sleep to conserve even more power.  The wake() method
     must then be used to wake the sensor up again and resume operation.
-    
+
     To obtain more accurate measurements, this class also accepts objects that
     encapsulate temperature and humidity sensors as arguments, the measurements
     of which will then be used to improve upon the accuracy of the air quality
@@ -108,12 +108,12 @@ class CCS811( object ):
     passed as both arguments individually.  If no temperature object is
     supplied, 298.15 Kelvin (25&deg;C or 77&deg;F) is assumed; if no humidity
     object is supplied, 50% humidity is assumed.
-    
+
     Note that a new sensor requires a 48 hour burn in. Once burned in, a sensor
     must run for 20 minutes after power on before readings are stable and
     considered valid.
     """
-    
+
     # static public constants
     # -----------------------
     # possible values for measurement interval  are 1 s, 10 s, 60 s, and 250 ms
@@ -124,8 +124,11 @@ class CCS811( object ):
     MEAS_INT_60 = 3
     MEAS_INT_250MS = 4
     DEFAULT_MEAS_INT = MEAS_INT_1
+    # ADDR is set by wiring ADDR Pin 1 to HIGH or LOW (s. data sheet p. 4)
+    ADDR_LOW = 0x5A
+    ADDR_HIGH = 0x5B
     # default I2C Address for CCS811 device
-    DEFAULT_ADDR = 0x5B
+    DEFAULT_ADDR = ADDR_HIGH
     # number of attempts in dataReady() before we give up
     ATTEMPTS = 5
 
@@ -136,7 +139,7 @@ class CCS811( object ):
     __INTERRUPT_MODE = 1
     # CCS811 Hardware ID
     __HW_ID = 0x81
-    # CCS881 register (s. data sheet p. 17)
+    # CCS881 registers (s. data sheet p. 17)
     __STATUS_REG = 0x00
     __MEAS_MODE_REG = 0x01
     __ALG_RESULT_DATA_REG = 0x02
@@ -160,11 +163,11 @@ class CCS811( object ):
     __DATA_READY_BIT = 3
     __ERROR_BIT = 0
     # measurement mode register bits (s. data sheet p. 19)
-    __DRIVE_MODE_BIT = 4 # actually bits 4, 5, and 6 - this is the shift amount
+    __DRIVE_MODE_BIT = 4  # actually bits 4, 5, and 6 - this is the shift amount
     __INT_DATARDY_BIT = 3
     __INT_THRESH_BIT = 2
-        
-    
+
+
     def __init__( self,
                   i2cBus,
                   measInterval=DEFAULT_MEAS_INT,
@@ -175,7 +178,7 @@ class CCS811( object ):
                   i2cAddress=DEFAULT_ADDR ):
         """!
         @brief Constructor for class CCS811.
-        
+
         This constructor initializes the I2C library module as well as the host
         hardware and provides the abstraction from the Raspberry Pi module it is
         used on for other methods.
@@ -192,21 +195,23 @@ class CCS811( object ):
                which means that wakeup functionality is disabled
         @param tempDevice object encapsulating a temperature measurement device
                with a "kelvin" property to get the temperature in Kelvin -
-               default is None               
+               default is None
         @param humidDevice object encapsulating a humidity measurement device
                with a "humidity" property to get the humidity in percent -
                default is None
-        @param i2cAddress I2C address selected on CCS811 - 0x5A or 0x5B (def.)
+        @param i2cAddress I2C address selected on CCS811, one of
+               - ADDR_LOW (0x5A - Pin 1 wired LOW)
+               - ADDR_HIGH (0x5B - Pin1 wired HIGH - default)
         """
-        
+
         # do some minimal parameter checking
-        if i2cAddress != 0x5A and i2cAddress != 0x5B:
+        if i2cAddress != self.ADDR_LOW and i2cAddress != self.ADDR_HIGH:
             raise ValueError( 'wrong i2cAddress specified for CCS811' )
         if measInterval < self.MEAS_INT_1 or measInterval > self.MEAS_INT_250MS:
             raise ValueError( 'wrong measInterval specified' )
-            
+
         # we declare ALL class properties here
-        
+
         # set (constant) private properties from parameters
         self.__i2cBus = i2cBus
         self.__i2cAddress = i2cAddress
@@ -218,22 +223,22 @@ class CCS811( object ):
             self.__mode = self.__POLL_MODE
         else:
             self.__mode = self.__INTERRUPT_MODE
-            
+
         # initialize other (variable) private properties
-        self.__stopped = True # in case we get interrupts early (and we do...)
+        self.__stopped = True  # in case we get interrupts early (and we do...)
         self.__tVOC = None
         self.__CO2 = None
         self.__staleCO2 = True
         self.__staletVOC = True
         self.__open = False
         self.__errorCode = 0
-        
+
         # wait time after power up (see data sheet p. 7)
         # chances are it took us a lot longer to get here, but just in case...
         time.sleep( 20.0E-03 )
-           
+
         try:
-        
+
             if interruptPin is not None:
                 self.__interruptPin = IOpin( interruptPin,
                                              IOpin.INPUT_PULLUP,
@@ -248,37 +253,46 @@ class CCS811( object ):
                 self.__wakeupPin.level = IOpin.LOW
             else:
                 self.__wakeupPin = None
-                
+
             # initialize the CCS811 chip
+            # first perform a software reset to bring CCS811 in a known state
+            try:
+                self.reset()
+            except:
+                # but ignore errors - it might not even be a CCS811 after all
+                pass
+
+            # make sure there is a CCS811 at this address
             if self.__i2cBus.readByteReg( self.__i2cAddress,
                                           self.__HW_ID_REG ) != self.__HW_ID:
                 raise ValueError( 'CCS811 not found at I2C address '
                                   '0x{0:02X}'.format( self.__i2cAddress ) )
 
-            if self.errorCondition:
-                # try again...
-                if self.__i2cBus.readByteReg( self.__i2cAddress,
-                                              self.__HW_ID_REG ) \
-                   != self.__HW_ID:
-                    raise ValueError( 'CCS811 not found at I2C address '
-                                      '0x{0:02X}'.format( self.__i2cAddress ) )
-                if self.errorCondition:
-                    raise ValueError( 'Error at Startup: ' + self.errorText )
-            
+            # We have the correct chip, so we consider it "opened," i.e. it can
+            # and should be closed in case of an error when we have to leave
             self.__open = True
 
-            if not self.__i2cBus.readByteReg( self.__i2cAddress,
-                                              self.__STATUS_REG ) \
-                                              & (1 << self.__APP_VALID_BIT):
+            # check if status is OK
+            status = self.__i2cBus.readByteReg( self.__i2cAddress,
+                                                self.__STATUS_REG )
+            if (status & (1 << self.__ERROR_BIT)) != 0:
+                self.__errorCode = \
+                    self.__i2cBus.readByteReg( self.__i2cAddress,
+                                               self.__ERROR_ID_REG )
+                raise ValueError( 'Error at Startup: ' + self.errorText )
+            if not status & (1 << self.__APP_VALID_BIT):
                 raise ValueError( 'Error: CCS811 internal App not valid.' )
 
+            # Put chip in start mode
             self.__i2cBus.writeByte( self.__i2cAddress, self.__APP_START_REG )
             # time after APP_START command - see data sheet p. 7
-            time.sleep( 1.0E-03 )
-
+            time.sleep( 2.0E-03 )
             if self.errorCondition:
+                # from here on, we need to reset the chip if anything fails
+                # or else it hangs
                 raise ValueError( 'Error at AppStart:' + self.errorText )
-            
+
+            # select user-supplied measuring interval
             self.__setModeReg( self.__mode, self.__measInterval )
 
             if self.errorCondition:
@@ -288,18 +302,18 @@ class CCS811( object ):
         except (ValueError, GPIOError) as e:
             self.close()
             raise e
-          
+
         if self.__interruptPin is not None:
             # this fake read request is needed to convince the CCS811 to release
             # the interrupt Pin and not pull it low all the time
             self.readData()
-        
+
         # set stopped to False and let the measurements begin...
         self.__stopped = False
-        
+
         return
-    
-    
+
+
     def __del__( self ):
         """!
         @brief Destructor - not supported by MicroPython.  Destructors have no
@@ -325,36 +339,81 @@ class CCS811( object ):
                           self.__tempDevice,
                           self.__humidDevice,
                           self.__i2cAddress )
-    
-    
+
+
+    def reset( self ):
+        """!
+        @brief Perform a software reset on the CCS811.
+        """
+        # s. data sheet p. 25
+        self.__i2cBus.writeByte( self.__i2cAddress,
+                                 self.__SW_RESET_REG,
+                                 [0x11, 0xE5, 0x72, 0x8A] )
+        time.sleep( 5.0E-03 )  # s. data sheet p. 7
+        return
+
+
+    def __enter__( self ):
+        """!
+        @brief Allow object of this class to operate under a context manager.
+        """
+        self.open()
+        return self
+
+
+    def __exit__( self, type, value, traceback ):
+        """!
+        @brief Allow object of this class to operate under a context manager.
+
+        The exit method simply closes the CCS811 device.  If the with block
+        is left "naturally" (without throwing an exception) all three
+        parameters are None.
+        @param type type of exception forcing control to leave with block
+        @param value value of exception forcing control to leave with block
+        @param traceback traceback information associated with this exception
+        @return False indicating that exception has not been handled
+        """
+        self.close()
+        return False
+
+
+    def open( self ):
+        """!
+        @brief Just provide an open method that does nothing - the init method
+        already opens the device.
+        """
+        return
+
+
     def close( self ):
         """!
         @brief Close the CCS811 device and Pins we may have opened.
-        
-       This method turns off interrupt generation, puts the CCS811 in boot
-       mode, and closes all open Pins.
+
+        This method closes all open Pins, turns off interrupt generation and
+        puts the CCS811 in boot mode.  Do NOT close the I2C bus as other devices
+        may still use it - it ios a bus after all...
         """
-        if self.__open:
+        if self.__interruptPin is not None:
             try:
-                self.__setModeReg( self.__POLL_MODE, self.MEAS_INT_IDLE )
-                self.__i2cBus.writeByte( self.__i2cAddress,
-                                         self.__SW_RESET_REG )
+                self.__interruptPin.close()
             except:
                 pass
-            if self.__interruptPin is not None:
-                try:
-                    self.__interruptPin.close()
-                except:
-                    pass
-            if self.__wakeupPin is not None:
-                try:
-                    self.wakeupPin.close()
-                except:
-                    pass
+            self.__interruptPin = None
+        if self.__wakeupPin is not None:
+            try:
+                self.__wakeupPin.close()
+            except:
+                pass
+            self.__wakeupPin = None
+        if self.__open:
+            try:
+                self.reset()
+            except:
+                pass
             self.__open = False
         return
-    
-    
+
+
     def __setModeReg( self, mode, measInterval ):
         """!
         @brief Private method to set the internal CCS811 mode register, i.e. the
@@ -369,12 +428,12 @@ class CCS811( object ):
                                     self.__MEAS_MODE_REG,
                                     modeReg )
         return
-    
-    
+
+
     def __toCCSfloat( self, number ):
         """!
         @brief Convert a regular float to the float format used by CCS.
-        
+
         Cambridge CMOS Sensors uses a two-byte representation for a float in
         which the exponent is always zero (and not stored) and the significand
         is split in a portion before and one after the radix point.  The portion
@@ -405,7 +464,7 @@ class CCS811( object ):
         floatHigh |= bits >> 8
         floatLow = bits & 0xFF
         return [floatHigh, floatLow]
-    
+
 
     @property
     def errorText( self ):
@@ -413,27 +472,29 @@ class CCS811( object ):
         @brief Works as a property that contains human-readable error text from
                errors indicated by the device.
         @return string with error description
-        """        
+        """
         message = ''
+        if self.__errorCode == 0xFF:
+            return 'All error code bits set'
         if self.__errorCode & (1 << 0):
-            message += 'Write request to wrong register received '
+            message += 'Write request to wrong register received, '
         if self.__errorCode & (1 << 1):
-            message += 'Read request for wrong register received '
+            message += 'Read request for wrong register received, '
         if self.__errorCode & (1 << 2):
-            message += 'Invalid MeasMode received '
+            message += 'Invalid MeasMode received, '
         if self.__errorCode & (1 << 3):
-            message += 'Sensor resistance reached max resistance '
+            message += 'Sensor resistance reached max resistance, '
         if self.__errorCode & (1 << 4):
-            message += 'Heater Current is not in range '
+            message += 'Heater Current is not in range, '
         # s. data sheet p. 24
         if self.__errorCode & (1 << 5):
-            message += 'Heater supply voltage is not applied correctly '
+            message += 'Heater supply voltage is not applied correctly, '
         if self.__errorCode & (1 << 6):
-            message += 'Could not read error registers '
+            message += 'Could not read error registers, '
         if self.__errorCode & (1 << 7):
-            message += 'Unspecified error '
-            
-        return message[:-1]
+            message += 'Unspecified error, '
+
+        return message[:-2]
 
 
     @property
@@ -441,7 +502,7 @@ class CCS811( object ):
         """!
         @brief Works as a property that indicates if an error condition
                exists on the device.
-        
+
         As a side effect, this property method also sets the internal errorCode.
         @return True if there is an error condition - False otherwise
         """
@@ -461,12 +522,12 @@ class CCS811( object ):
             # error reading status or error code itself
             self.__errorCode = 1 << 6
             return True
-        
-        
+
+
     def sleep( self ):
         """!
         @brief Send sensor to sleep.
-        
+
         The method assures that a minimal sleep time if 20 &mu;s is kept by
         stalling for that time.
         """
@@ -479,12 +540,12 @@ class CCS811( object ):
         time.sleep( 20.0E-06 ) # s. data sheet p. 7
         self.__stopped = True
         return
-        
-        
+
+
     def wake( self ):
         """!
         @brief Wake sensor up.
-        
+
         The method only returns after the sensor is ready for I<sup>2</sup>C
         traffic again, i.e. it will stall for 50 &mu;s after asserting the
         wakeup Pin low.
@@ -505,19 +566,19 @@ class CCS811( object ):
         """!
         @brief Works as a property to check if new measurement data is
                available.
-        
+
         As an internal side effect, this property method will immediately read
         and store the measurements internally and make them available for
         examination via the CO<sub>2</sub> and tVOC properties.
-        
+
         The property is used only in poll mode.  In interrupt mode use the
         property staleMeasurement.
         @return True if measurement data are available - False otherwise
         """
-        
+
         if self.__stopped:
             return False
-        
+
         count = self.__attempts
         while count > 0:
             try:
@@ -525,7 +586,7 @@ class CCS811( object ):
                 status = self.__i2cBus.readByteReg( self.__i2cAddress,
                                                     self.__STATUS_REG )
                 break
-            except OSError as e:
+            except OSError:
                 count = count - 1
         if count <= 0:
             return False
@@ -534,14 +595,14 @@ class CCS811( object ):
             # if the device is ready, read its measurements
             self.readData()
         return ready
-    
-    
+
+
     def waitforData( self ):
         """!
         @brief Method blocks until new measurements are available, which will
         then be immediately read and stored internally and made available for
         examination via the CO<sub>2</sub> and tVOC properties.
-        
+
         Blocking method for poll mode.
         """
         while not self.dataReady:
@@ -552,32 +613,32 @@ class CCS811( object ):
     def readData( self, pin=None, level=None, tick=None ):
         """!
         @brief Method to read measurements from the CCS811 - used internally and
-        as an ISR for which it needs to be public and have, depending on the 
-        target architecture, either a Pin object as the only argument on the 
-        Pico, or the Pin number, the voltage level at the Pin, and the number of 
-        microseconds since boot on the Raspberry Pi as its arguments; neither 
-        one of the arguments are used here except the Pin for debug output.  
+        as an ISR for which it needs to be public and have, depending on the
+        target architecture, either a Pin object as the only argument on the
+        Pico, or the Pin number, the voltage level at the Pin, and the number of
+        microseconds since boot on the Raspberry Pi as its arguments; neither
+        one of the arguments are used here except the Pin for debug output.
         When used internally, the method is called with no arguments.
-        
+
         User code should not call this method.
         @param pin where interrupt happened - unused
         @param level - unused, supplied only at Raspberry Pi, 0 - change to low,
                1 - change to high 2 - no level change
         @param tick - unused, supplied only at Raspberry Pi, number of
                microseconds since boot - wraps around about every 72 minutes
-        """        
+        """
         # always read the data to make the method more versatile
         data = self.__i2cBus.readBlockReg( self.__i2cAddress,
                                            self.__ALG_RESULT_DATA_REG,
                                            4 )
-           
+
         if self.__stopped:
             # if this method is called while stopped, it performs a "fake read"
             # to convince the CCS811 to release the interrupt Pin - also
             # interrupts from the CCS811 sometimes happen when they shouldn't...
             return
-        
-        
+
+
         try:
             self.__CO2 = (data[0] << 8) | data[1]
             if self.__CO2 < 400:
@@ -597,7 +658,6 @@ class CCS811( object ):
             self.__staleCO2 = True
             self.__staletVOC = True
 
-        
         if self.__tempDevice is not None or self.__humidDevice is not None:
             # write environmental data to the sensor
             if self.__tempDevice is not None:
@@ -616,10 +676,10 @@ class CCS811( object ):
             self.__i2cBus.writeBlockReg( self.__i2cAddress,
                                          self.__ENV_DATA_REG,
                                          envList )
-        
+
         return
-    
-    
+
+
     @property
     def CO2( self ):
         """!
@@ -628,8 +688,8 @@ class CCS811( object ):
         """
         self.__staleCO2 = True
         return self.__CO2
-    
-    
+
+
     @property
     def tVOC( self ):
         """!
@@ -638,14 +698,14 @@ class CCS811( object ):
         """
         self.__staletVOC = True
         return self.__tVOC
-    
-    
+
+
     @property
     def staleMeasurements( self ):
         """!
         @brief Works as a property and returns True if there are any stale
                (already read) measurements.
-        
+
         This is useful in interrupt mode when the calling program cannot know
         whether the internally stored data is the latest one.  This property can
         be used in interrupt mode in the (rare) cases when this becomes
@@ -658,17 +718,16 @@ class CCS811( object ):
 #  main program - NO Unit Test - Unit Test is in separate file
 
 if __name__ == "__main__":
-    
+
     import sys
 
     def main():
         """!
-        @brief Main program - to save some resources, we do not include the 
+        @brief Main program - to save some resources, we do not include the
                Unit Test here.
         """
         print( 'Please use included CCS811UnitTest.py for Unit Test' )
         return 0
 
-    
+
     sys.exit( int( main() or 0 ) )
-    

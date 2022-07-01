@@ -44,8 +44,8 @@ try:
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
                                    os.pardir ) )
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
-                                   os.pardir, 
-                                   os.pardir, 
+                                   os.pardir,
+                                   os.pardir,
                                    'GPIO_AL' ) )
 except ImportError:
     # on the Pico there is no os.path but all modules are in the same directory
@@ -58,12 +58,15 @@ from CCS811 import *
 #  main program - Quick And Dirty Interrupt Test
 
 if __name__ == "__main__":
-    
-    
+
+
     def main():
         """!
         @brief Quick And Dirty Interrupt Test for CCS811.
         """
+
+        i2cBus = None
+        aqSensor = None
 
         try:
             # use the I2C bus with default parameters only
@@ -72,19 +75,19 @@ if __name__ == "__main__":
 
             # CCS811 interrupt Pin hard coded as 6
             interruptPin = 6
-            
+
             input( 'Connect CCS811 interrupt Pin to Pin {0} of the Raspberry '
                    'Pi and hit Enter when done'.format( interruptPin ) )
-            
+
             interval = int( input( 'Enter measurement interval (1, 2, or 3'
                                    ' for 1 s, 10 s, or 60 s): ' ) )
-            
+
             print( 'Measurements obtained under interrupt control:' )
 
             aqSensor = CCS811( i2cBus,
                                measInterval=interval,
                                interruptPin=interruptPin )
-            
+
             while True:
                 if not aqSensor.staleMeasurements:
                     if aqSensor.errorCondition:
@@ -95,7 +98,7 @@ if __name__ == "__main__":
             pass
         except Exception as e:
             print( e )
-        
+
         print( 'Exiting...' )
         try:
             aqSensor.close()
@@ -106,4 +109,3 @@ if __name__ == "__main__":
         return 0
 
     sys.exit( int( main() or 0 ) )
-

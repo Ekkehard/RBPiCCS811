@@ -8,7 +8,7 @@
 # This module provides the Unit Test for the CCS811 module.  It has been
 # separated from the CCS811 module to conserve some resources, as this code is
 # intended to also run on an Raspberry Pi Pico MCU.  On this architecture, it is
-# mandatory that the CCS811.py and GPIO_AL.py file both reside on the Raspberry 
+# mandatory that the CCS811.py and GPIO_AL.py file both reside on the Raspberry
 # Pi Pico's flash drive.
 #
 # Because of the nature of the class under test, this Unit Test cannot be
@@ -51,8 +51,8 @@ try:
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
                                    os.pardir ) )
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
-                                   os.pardir, 
-                                   os.pardir, 
+                                   os.pardir,
+                                   os.pardir,
                                    'GPIO_AL' ) )
 except ImportError:
     # on the Pico there is no os.path but all modules are in the same directory
@@ -117,7 +117,7 @@ class Humidity( object ):
 if __name__ == "__main__":
 
     DEBUG = True
-    
+
     def main():
         """!
         @brief Unit Test for CCS811.
@@ -125,112 +125,131 @@ if __name__ == "__main__":
 
         i2cBus = None
         aqSensor = None
-        
-        print( 'In all casses accept default values (in patantheses) by '
+
+        print( 'In all cases accept default values (in parentheses) by '
                'hitting Enter\n' )
-        
+
         try:
             while True:
+                print( '\nSet up I2C bus parameters' )
+                print( '-------------------------' )
+                print( 'Enter {0} to end this test\n'
+                       ''.format( exitChar ) )
                 try:
-                    print( '\nSet up I2C bus parameters' )
-                    print( '-------------------------' )
-                    print( 'Enter {0} to end this test\n'
-                           ''.format( exitChar ) )
-                    line = input( '\nsda Pin ({0}): '
-                                  ''.format( I2Cbus.DEFAULT_DATA_PIN ) )
-                    if line:
-                        sdaPin = int( line )
-                    else:
+                    try:
+                        sdaPin = int( input(
+                            '\nsda Pin ({0}): '
+                            ''.format( I2Cbus.DEFAULT_DATA_PIN ) ) )
+                    except ValueError:
                         sdaPin = I2Cbus.DEFAULT_DATA_PIN
-                        
-                    line = input( 'scl Pin ({0}): '
-                                  ''.format( I2Cbus.DEFAULT_CLOCK_PIN ) )
-                    if line:
-                        sclPin = int( line )
-                    else:
+
+                    try:
+                        sclPin = int( input(
+                            'scl Pin ({0}): '
+                            ''.format( I2Cbus.DEFAULT_CLOCK_PIN ) ) )
+                    except ValueError:
                         sclPin = I2Cbus.DEFAULT_CLOCK_PIN
-                        
-                    line = input( 'frequency in Hz ({0} Hz): '
-                                  ''.format( I2Cbus.DEFAULT_I2C_FREQ ) )
-                    if line:
-                        frequency = int( line )
+
+                    try:
+                        mode = int( input( 'mode - {0} for HW, {1} for SW ('
+                                           '{2})'
+                                           ''.format( I2Cbus.HARDWARE_MODE,
+                                                      I2Cbus.SOFTWARE_MODE,
+                                                      I2Cbus.DEFAULT_MODE ) ) )
+                    except ValueError:
+                        mode = I2Cbus.DEFAULT_MODE
+
+                    if mode == I2Cbus.SOFTWARE_MODE or isPico():
+                        try:
+                            frequency = int( input(
+                                'frequency in Hz ({0} Hz): '
+                                ''.format( I2Cbus.DEFAULT_I2C_FREQ ) ) )
+                        except ValueError:
+                            frequency = I2Cbus.DEFAULT_I2C_FREQ
                     else:
                         frequency = I2Cbus.DEFAULT_I2C_FREQ
-                        
-                    line = input( 'mode - {0} for HW, {1} for SW ({2}) - '
-                                  'do not use HW mode on Raspberry Pi 3: '
-                                  ''.format( I2Cbus.HARDWARE_MODE,
-                                             I2Cbus.SOFTWARE_MODE,
-                                             I2Cbus.DEFAULT_MODE ) )
-                    if line:
-                        mode = int( line )
-                    else:
-                        mode = I2Cbus.DEFAULT_MODE
-                        
-                    i2cBus = I2Cbus( sdaPin, sclPin, frequency, mode )
-                    print( 'I2C bus opened successfully: {0}'.format( i2cBus ) )
-                    break
-                except (KeyboardInterrupt, ValueError):
+
+                    try:
+                        attempts = int( input( 'number of attempts {0}: '
+                                               ''.format( I2Cbus.ATTEMPTS ) ) )
+                    except ValueError:
+                        attempts = I2Cbus.ATTEMPTS
+                except KeyboardInterrupt:
                     print()
                     break
-                except GPIOError as e:
+
+                try:
+                    i2cBus = I2Cbus( sdaPin, sclPin, mode, frequency, attempts )
+                    print( 'I2C bus opened successfully: {0}'.format( i2cBus ) )
+                    break
+                except (ValueError, GPIOError) as e:
                     print( e )
                     continue
-        
+
             while i2cBus is not None:
+                print( '\nSet up CCS811 sensor parameters' )
+                print( '-------------------------------' )
+                print( 'Again, enter {0} to end this input and '
+                       'start over\n'.format( exitChar ) )
                 try:
-                    print( '\nSet up CCS811 sensor parameters' )
-                    print( '-------------------------------' )
-                    print( 'Again, enter {0} to end this input and '
-                           'start over\n'.format( exitChar ) )
-                    line = input( 'Enter CCS811 device address in hex '
-                                  '(0x{0:02X}): '
-                                  ''.format( CCS811.DEFAULT_ADDR ) )
-                    if line:
-                        i2cAddr = int( line, 16 )
-                    else:
+                    try:
+                        i2cAddr = int( input( 'Enter CCS811 device address in '
+                                              'hex (0x{0:02X}): '
+                                              ''.format( CCS811.DEFAULT_ADDR )
+                                            ), 16 )
+                    except ValueError:
                         i2cAddr = CCS811.DEFAULT_ADDR
 
-                    line = input( 'Enter interrupt Pin or empty line for poll '
-                                  'mode: ' )
-                    if line:
-                        interruptPin = int( line )
-                    else:
+                    try:
+                        interruptPin = int( input( 'Enter interrupt Pin or '
+                                                   'empty line for poll '
+                                                   'mode: ' ) )
+                    except ValueError:
                         interruptPin = None
 
-                    line = input( 'Enter wakeup Pin or empty line: ' )
-                    if line:
-                        wakeupPin = int( line )
-                    else:
+                    try:
+                        wakeupPin = int( input( 'Enter wakeup Pin or empty '
+                                                'line: ' ) )
+                    except ValueError:
                         wakeupPin = None
 
                     print( 'Enter measurement interval' )
-                    print( '1 s .... {0}'.format( CCS811.MEAS_INT_1 ) )
+                    print( '1 s .... {0} (default)'
+                           ''.format( CCS811.MEAS_INT_1 ) )
                     print( '10 s ... {0}'.format( CCS811.MEAS_INT_10 ) )
                     print( '60 s ... {0}'.format( CCS811.MEAS_INT_60 ) )
                     print( '250 ms . {0}'.format( CCS811.MEAS_INT_250MS ) )
-                    measInterval = int( input( '> ' ) )
+                    try:
+                        measInterval = int( input( '> ' ) )
+                    except ValueError:
+                        measInterval = CCS811.MEAS_INT_1
 
-                    line = input( 'Enter temperature in deg F to use dummy '
-                                  'temp object or empty line: ' )
-                    if line:
-                        tempObj = Temperature( fahrenheit=float( line ) )
-                    else:
+                    try:
+                        temp = float( input( 'Enter temperature in deg F to '
+                                             'use dummy temp object or empty '
+                                             'line: ' ) )
+                        tempObj = Temperature( fahrenheit=float( temp ) )
+                    except ValueError:
                         tempObj = None
 
-                    line = input( 'Enter humidity in % to use dummy humidity '
-                                  'object or empty line: ' )
-                    if line:
-                        humObj = Humidity( float( line ) )
-                    else:
+                    try:
+                        humid = float( input( 'Enter humidity in % to use '
+                                              'dummy humidity object or '
+                                              'empty line: ' ) )
+                        humObj = Humidity( float( humid ) )
+                    except ValueError:
                         humObj = None
+                except KeyboardInterrupt:
+                    print()
+                    break
 
+                try:
                     aqSensor = CCS811( i2cBus,
                                        measInterval,
                                        interruptPin,
-                                       wakeupPin, 
-                                       tempObj, 
-                                       humObj, 
+                                       wakeupPin,
+                                       tempObj,
+                                       humObj,
                                        i2cAddr )
                     print( 'Successfully opened CCS811 sensor: {0}'
                            ''.format( aqSensor ) )
@@ -257,14 +276,14 @@ if __name__ == "__main__":
                         pass
                     aqSensor = None
                     continue
-                
+
                 try:
                     print( 'Enter Ctrl-C to end data acquisition' )
                     answer = input( 'Hit Enter to start test or q to quit' )
                     if answer == 'q':
                         break
-                    if not wakeupPin:
-                        if mode == 0:
+                    if wakeupPin is None:
+                        if interruptPin is None:
                             print( 'Testing in regular poll mode...' )
                             while True:
                                 aqSensor.waitforData()
@@ -326,13 +345,18 @@ if __name__ == "__main__":
                                                              aqSensor.tVOC ) )
                                 print( 'waking sensor up again '
                                        '(expect new measurements)!' )
-                                aqSensor.wake()            
+                                aqSensor.wake()
                 except KeyboardInterrupt:
                     print( '\nGot keyboard interrupt' )
-                
+                    if aqSensor is not None:
+                        aqSensor.close()
+                        aqSensor = None
+
         except KeyboardInterrupt:
-            pass
-                
+            if aqSensor is not None:
+                aqSensor.close()
+                aqSensor = None
+
         except ValueError as e:
             if traceback is not None:
                 traceback.print_exc()
@@ -348,18 +372,15 @@ if __name__ == "__main__":
                 traceback.print_exc()
             else:
                 print( '\nERROR: {0}'.format( e ) )
-        
+
         print( '\nClosing CCS811 and I2Cbus objects (in that order)...' )
-        try:
-            if aqSensor is not None:
-                aqSensor.close()
-        except:
-            pass
+        if aqSensor is not None:
+            aqSensor.close()
         if i2cBus is not None:
             i2cBus.close()
-            
+
         print( '\nExiting...\n' )
         return 0
-    
-    
+
+
     sys.exit( int( main() or 0 ) )

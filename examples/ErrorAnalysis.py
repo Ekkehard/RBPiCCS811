@@ -5,7 +5,7 @@
 # @version    1.0.0
 #
 # @par Purpose
-# Produce a trigger signal after a CCS811 error situation occurs. 
+# Produce a trigger signal after a CCS811 error situation occurs.
 #
 # @par Comments
 # This is Python 3 code!  PEP 8 guidelines are decidedly NOT followed in some
@@ -42,8 +42,8 @@ try:
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
                                    os.pardir ) )
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
-                                   os.pardir, 
-                                   os.pardir, 
+                                   os.pardir,
+                                   os.pardir,
                                    'GPIO_AL' ) )
 except ImportError:
     # on the Pico there is no os.path but all modules are in the same directory
@@ -61,19 +61,21 @@ except:
 #  main program - Quick And Dirty Poll Test
 
 if __name__ == "__main__":
-    
-    
+
+
     def main():
         """!
         @brief generate trigger signal when CCS811 error occurs.
         """
+        aqSensor = None
+        i2cBus = None
         
         try:
-            
+
             # use the I2C bus with default parameters only
             i2cBus = I2Cbus()
             print( 'Using I2C bus: {0}'.format( i2cBus ) )
-            
+
             pin = int( input( 'Enter Pin number for trigger signal: ' ) )
             triggerPin = IOpin( pin, IOpin.OUTPUT )
             print( 'Using trigger Pin: {0}'.format( triggerPin ) )
@@ -96,7 +98,7 @@ if __name__ == "__main__":
                 traceback.print_exc()
             else:
                 print( e )
-        
+
         print( 'Exiting...' )
         try:
             aqSensor.close()
@@ -107,4 +109,3 @@ if __name__ == "__main__":
         return 0
 
     sys.exit( int( main() or 0 ) )
-

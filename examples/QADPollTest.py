@@ -6,7 +6,7 @@
 #
 # @par Purpose
 # This module provides Quick And Dirty Poll Test for the CCS811 module.  On
-# the Raspberry Pi Pico, it is mandatory that the CCS811.py and the GPIO_AL.py 
+# the Raspberry Pi Pico, it is mandatory that the CCS811.py and the GPIO_AL.py
 # file both reside on the Raspberry Pi Pico's flash drive.
 #
 # Because of the nature of the class under test, this Unit Test cannot be
@@ -47,8 +47,8 @@ try:
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
                                    os.pardir ) )
     sys.path.append( os.path.join( os.path.dirname( __file__ ),
-                                   os.pardir, 
-                                   os.pardir, 
+                                   os.pardir,
+                                   os.pardir,
                                    'GPIO_AL' ) )
 except ImportError:
     # on the Pico there is no os.path but all modules are in the same directory
@@ -66,13 +66,15 @@ except:
 #  main program - Quick And Dirty Poll Test
 
 if __name__ == "__main__":
-    
-    
+
+
     def main():
         """!
         @brief Quick And Dirty Poll Test for CCS811.
         """
-        
+        i2cBus = None
+        aqSensor = None
+
         try:
             # use the I2C bus with default parameters only
             i2cBus = I2Cbus()
@@ -93,7 +95,7 @@ if __name__ == "__main__":
                 traceback.print_exc()
             else:
                 print( e )
-        
+
         print( 'Exiting...' )
         try:
             aqSensor.close()
